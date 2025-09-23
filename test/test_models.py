@@ -13,14 +13,10 @@ class test_models(unittest.TestCase):
         # Подготовка
         model = company_model()
 
-        # Действие
-
         # Проверки
         assert model.name == ""
 
 
-
-    # Проверить создание основной модели
     # Данные меняем. Данные должны быть
     def test_notEmpty_createmodel_companymodel(self):
         # Подготовка
@@ -47,7 +43,7 @@ class test_models(unittest.TestCase):
     # Данные загружаем через json настройки
     def test_load_createmodel_companymodel(self):
         # Подготовка
-        file_name = r"C:\Users\admin\PycharmProjects\restaurant_automation\settings.json"
+        file_name = r"../settings.json"
         manager = settings_manager()
         manager.file_name = file_name
 
@@ -61,7 +57,7 @@ class test_models(unittest.TestCase):
     # Данные загружаем. Проверяем работу Singletone
     def test_loadCombo_createmodel_companymodel(self):
         # Подготовка
-        file_name = r"C:\Users\admin\PycharmProjects\restaurant_automation\settings.json"
+        file_name = "../settings.json"
         manager1 = settings_manager()
         manager1.file_name = file_name
         manager2 = settings_manager()
@@ -72,16 +68,18 @@ class test_models(unittest.TestCase):
         # Проверки
         assert manager1.company == manager2.company
 
+#   Проверяем работу функции convert
     def test_convert_function(self):
         # Подготовка
         d = {"company": {"name": "Рога и копыта"}}
-        manager1 = settings_manager()
+        manager = settings_manager()
 
         # Дейсвтие
-        manager1.convert(d)
+        manager.convert(d)
 
         # Проверки
-        assert manager1.company != ""
+        assert manager.company.name == "Рога и копыта"
+        assert manager.company.inn == 100000000000
 
 
 

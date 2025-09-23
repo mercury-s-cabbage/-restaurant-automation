@@ -65,7 +65,7 @@ class settings_manager:
                 self.__company.corr_acc = item["corr_acc"]
                 self.__company.bic = item["bic"]
                 self.__company.inn = item["inn"]
-                return True
+            return True
         except:
             return False
 
@@ -74,10 +74,10 @@ class settings_manager:
     def set_default(self):
         self.__company = company_model()
         self.__company.name = "Рога и копыта"
-        self.__company.inn = 123456789012
-        self.__company.acc = 12345678901
-        self.__company.corr_acc = 12345678901
-        self.__company.bic = 123456789
-        self.__company.prop = "OOO"
+        self.__company.inn = 100000000000
+        self.__company.acc = 10000000000
+        self.__company.corr_acc = 10000000000
+        self.__company.bic = 100000000
+        self.__company.prop = "AAAOO"
 
 
