@@ -33,7 +33,7 @@ class Validator:
             len_ (int): Максимальная длина
         Raises:
             arguent_exception: Некорректный тип
-            arguent_exception: Неулевая длина
+            arguent_exception: Нулевая длина
             arguent_exception: Некорректная длина аргумента
         Returns:
             True или Exception
