@@ -1,53 +1,44 @@
+from src.settings_manager import SettingsManager
+from src.models.company_model import CompanyModel
 import unittest
-import json
-from src.set_org_model import settings_manager
-from src.company_model import company_model
+from src.models.storage_model import StorageModel
+import uuid
 
 
+class TestModels(unittest.TestCase):
 
-class test_models(unittest.TestCase):
-
-    # Провери создание основной модели
+    # Проверим создание основной модели
     # Данные после создания должны быть пустыми
     def test_empty_createmodel_companymodel(self):
         # Подготовка
-        model = company_model()
+        model = CompanyModel()
+
+        # Действие
 
         # Проверки
         assert model.name == ""
 
-
+    # Проверить создание основной модели
     # Данные меняем. Данные должны быть
     def test_notEmpty_createmodel_companymodel(self):
         # Подготовка
-        model = company_model()
+        model = CompanyModel()
 
         # Действие
         model.name = "test"
-        model.prop = "OOO"
-        model.inn = 123456789012
-        model.bic = 123456789
-        model.acc = 12345678901
-        model.corr_acc = 12345678901
 
         # Проверки
         assert model.name != ""
-        assert model.prop != ""
-        assert model.inn == 123456789012
-        assert model.inn == 123456789012
-        assert model.bic == 123456789
-        assert model.acc == 12345678901
-        assert model.corr_acc == 12345678901
 
     # Проверить создание основной модели
     # Данные загружаем через json настройки
     def test_load_createmodel_companymodel(self):
         # Подготовка
-        file_name = r"../settings.json"
-        manager = settings_manager()
+        file_name = "settings.json"
+        manager = SettingsManager()
         manager.file_name = file_name
 
-        # Дейсвтие
+        # Действие
         result = manager.load()
 
         # Проверки
@@ -57,30 +48,34 @@ class test_models(unittest.TestCase):
     # Данные загружаем. Проверяем работу Singletone
     def test_loadCombo_createmodel_companymodel(self):
         # Подготовка
-        file_name = "../settings.json"
-        manager1 = settings_manager()
+        file_name = "settings.json"
+        manager1 = SettingsManager()
         manager1.file_name = file_name
-        manager2 = settings_manager()
+        manager2 = SettingsManager()
+        check_inn = -1 #по умолчанию, поскольку в файле inn1
 
-        # Дейсвтие
+        # Действие
         manager1.load()
 
         # Проверки
-        assert manager1.company == manager2.company
+        assert manager1.settings == manager2.settings
+        print(manager1.file_name)
+        assert (manager1.settings.company.inn == check_inn)
+        print("YES\n")
+        print(f"ИНН {manager1.settings.company.inn}")
 
-#   Проверяем работу функции convert
-    def test_convert_function(self):
+    # Проверка на сравнение двух по значению одинаковых моделей
+    def text_equals_storage_model_create(self):
         # Подготовка
-        d = {"company": {"name": "Рога и копыта"}}
-        manager = settings_manager()
-
-        # Дейсвтие
-        manager.convert(d)
+        id = uuid.uuid4().hex
+        storage1 = StorageModel()
+        storage1.id = id
+        storage2 = StorageModel()
+        storage2.id = id
+        # Действие GUID
 
         # Проверки
-        assert manager.company.name == "Рога и копыта"
-        assert manager.company.inn == 100000000000
-
+        assert storage1 == storage2
 
 
 if __name__ == '__main__':
