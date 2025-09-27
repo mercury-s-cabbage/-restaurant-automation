@@ -45,12 +45,12 @@ class SettingsManager:
         if os.path.exists(full_file_name):
             self.__full_file_name = full_file_name.strip()
         else:
-            raise argument_exception(f'Не найден файл настроек {full_file_name}')
+            raise ArgumentException(f'Не найден файл настроек {full_file_name}')
 
     # Загрузить настройки из Json файла
     def load(self) -> bool:
         if self.__full_file_name == "":
-            raise operation_exception("Не найден файл настроек!")
+            raise OperationException("Не найден файл настроек!")
 
         try:
             with open(self.__full_file_name, 'r') as file_instance:
@@ -66,7 +66,7 @@ class SettingsManager:
 
     # Обработать полученный словарь
     def convert(self, data: dict) -> bool:
-        validator.validate(data, dict)
+        Validator.validate(data, dict)
 
         fields = list(filter(lambda x: not x.startswith("_"), dir(self.__settings.company)))
         matching_keys = list(filter(lambda key: key in fields, data.keys()))
