@@ -3,13 +3,17 @@ from src.core.abstract_model import AbstractModel
 from src.models.nomenclature_group_model import NomenclatureGroupModel
 from src.models.unit_model import UnitModel
 
-
 ###############################################
 # Модель номенклатуры
 class NomenclatureModel(AbstractModel):
     __group: NomenclatureGroupModel = None
     __unit: UnitModel = None
     __fullname: str = ""
+    _cache = {}
+
+    def __init__(self, name: str):
+        super().__init__()
+        self.name = name
 
     @property
     def group(self):
@@ -37,3 +41,12 @@ class NomenclatureModel(AbstractModel):
     def fullname(self, value):
         Validator.validate(value, str, 255)
         self.__fullname = value
+
+    @staticmethod
+    def create(name: str, unit: UnitModel = None):
+        if name in NomenclatureModel._cache:
+            return NomenclatureModel._cache[name]
+        item = NomenclatureModel(name)
+        item.unit = unit
+        NomenclatureModel._cache[name] = item
+        return item
