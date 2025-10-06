@@ -6,6 +6,8 @@ import uuid
 from src.models.unit_model import UnitModel
 from src.models.nomenclature_model import NomenclatureModel
 from src.models.nomenclature_group_model import NomenclatureGroupModel
+from src.start_service import start_service
+from src.models.recipe_model import RecipeModel
 
 
 class TestModels(unittest.TestCase):
@@ -103,20 +105,10 @@ class TestModels(unittest.TestCase):
 
     ###############################################
     # NomenclatureModel
-    # Пустые данные
-    def test_EmptyCreate_NomenclatureModel(self):
-        # Подготовка
-        nom = NomenclatureModel()
-
-        # Действие GUID
-
-        # Проверки
-        assert nom != None
-
     # Заполненные данные
     def test_NotEmptyCreate_NomenclatureModel(self):
         # Подготовка
-        nom = NomenclatureModel()
+        nom = NomenclatureModel("banana")
         unit = UnitModel("g")
 
         # Действие GUID
@@ -126,28 +118,62 @@ class TestModels(unittest.TestCase):
         assert nom.unit == "g"
 
     ###############################################
-    # NomenclatureGroupModel
-    # Пустые данные
-
-    def test_EmptyCreate_NomenclatureGroupModel(self):
-        # Подготовка
-        nom = NomenclatureGroupModel()
-
-        # Действие GUID
-
-        # Проверки
-        assert nom != None
-
+    # NomenclatureGroupModelS
     # Заполненные данные
     def test_NotEmptyCreate_NomenclatureGroupModel(self):
         # Подготовка
-        nom = NomenclatureGroupModel()
+        nom = NomenclatureGroupModel("test")
 
         # Действие GUID
         nom.description = "test"
 
         # Проверки
         assert nom.description == "test"
+
+    start_service()
+
+    ###############################################
+    # Проверка на уникальный экземпляр
+    # Валюта
+    def test_IsEqual_Unit(self):
+        kg = UnitModel.create_kill()
+        g = UnitModel.create_gram()
+        assert g == kg.base
+
+    # Номенклатура
+    def test_IsEqual_Nomenclature(self):
+        g = UnitModel.create_gram()
+        apple = NomenclatureModel.create("apple", g)
+        another_apple = NomenclatureModel.create("apple", g)
+        assert apple == another_apple
+
+    # Группа
+    def test_IsEqual_NomenclatureGroup(self):
+        veg = NomenclatureGroupModel.create("Овощи")
+        another_veg = NomenclatureGroupModel.create("Овощи")
+        assert veg == another_veg
+
+    ###############################################
+    # Рецепты
+
+    def test_recipe(self):
+        g = UnitModel.create_gram()
+        l = UnitModel.create_liter()
+        rec = RecipeModel("Тыквенный суп")
+
+        apple = NomenclatureModel.create("apple", g)
+        pumpkin = NomenclatureModel.create("pumpkin", g)
+        cocomilk = NomenclatureModel.create("cocomilk", l)
+        nutmeg = NomenclatureModel.create("nutmeg", g)
+        butter = NomenclatureModel.create("butter", g)
+        rec.add_ingredient(apple, 200)
+        rec.add_ingredient(pumpkin, 1000)
+        rec.add_ingredient(cocomilk, 0.5)
+        rec.add_ingredient(nutmeg, 5)
+        rec.add_ingredient(butter, 50)
+        print(rec)
+
+        assert rec.ingredients != {}
 
 
 if __name__ == '__main__':
