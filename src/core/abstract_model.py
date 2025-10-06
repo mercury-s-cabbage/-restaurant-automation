@@ -5,10 +5,12 @@ from src.core.validator import Validator
 
 class AbstractModel(ABC):
     __unique_code: str
+    __name: str
 
     def __init__(self) -> None:
         super().__init__()
         self.__unique_code = uuid.uuid4().hex
+        self.__name = ""
 
     """
     Уникальный код
@@ -29,3 +31,16 @@ class AbstractModel(ABC):
 
     def __eq__(self, value: str) -> bool:
         return self.__unique_code == value
+
+    """
+    Стандартное наименование
+    """
+
+    @property
+    def name(self):
+        return self.__name
+
+    @name.setter
+    def name(self, value):
+        Validator.validate(value, str, 50)
+        self.__name=value
