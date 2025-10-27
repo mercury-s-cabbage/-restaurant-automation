@@ -1,7 +1,6 @@
-
-import unittest
-from Src.start_service import start_service
 from Src.reposity import reposity
+from Src.start_service import start_service
+import unittest
 
 # Набор тестов для проверки работы статового сервиса
 class test_start(unittest.TestCase):
@@ -51,4 +50,6 @@ class test_start(unittest.TestCase):
 
 
 
-        
+          
+if __name__ == '__main__':
+    unittest.main()  

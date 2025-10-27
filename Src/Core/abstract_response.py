@@ -6,8 +6,7 @@ class abstract_response(abc.ABC):
     
     # Сформировать нужный ответ
     @abc.abstractmethod
-    def build(self, format:str, data: list) -> str:
-        validator.validate(format, str)
+    def build(self, data: list) -> str:
         validator.validate(data, list )
 
         if len(data) == 0:

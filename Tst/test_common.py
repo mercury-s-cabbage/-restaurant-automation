@@ -29,3 +29,6 @@ class test_common(unittest.TestCase):
         assert len(result) > 0
 
 
+  
+if __name__ == '__main__':
+    unittest.main()  
