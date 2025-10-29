@@ -16,7 +16,7 @@ class test_responses(unittest.TestCase):
 
 
         # Действие
-        result = response.build(service.data[ reposity.nomenclature_key ] )
+        result = response.build(service.data[ reposity.nomenclature_key() ] )
 
         # Проверка
         assert len(result) > 0

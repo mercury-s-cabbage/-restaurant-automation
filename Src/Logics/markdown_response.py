@@ -9,7 +9,6 @@ class markdown_response(abstract_response):
     Сформитровать данные в формате markdown
     """
     def build(self,  data: list) -> str:
-        validator.validate(format, str)
         if len(data) == 0:
             raise argument_exception("Некоррекно переданы параметры!")
 
