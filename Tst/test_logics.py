@@ -3,8 +3,7 @@ from Src.Logics.response_csv import response_scv
 from Src.Models.group_model import group_model
 from Src.Logics.factory_entities import factory_entities
 from Src.Core.response_formats import response_formats
-from Src.Core.validator import validator
-from Src.Core.abstract_response import abstract_response
+from Src.Models.range_model import range_model
 
 # Тесты для проверки логики 
 class test_logics(unittest.TestCase):
@@ -24,7 +23,7 @@ class test_logics(unittest.TestCase):
         assert result is not None
 
 
-    def test_notNone_factory_create(self):
+    def test_notNone_factory_create_csv(self):
         # Подготовка
         factory = factory_entities()
         data = []
@@ -38,7 +37,25 @@ class test_logics(unittest.TestCase):
         assert instance is not None
         text = instance().build(data)
         assert len(text) > 0
+        print(text)
 
+
+    
+    def test_notNone_factory_create_markdown(self):
+        # Подготовка
+        factory = factory_entities()
+        data = []
+        entity = range_model.create( "тест", 1, None)
+        data.append( entity )
+
+        # Действие
+        instance = factory.create( response_formats.markdown() )
+
+        # Проверка
+        assert instance is not None
+        text = instance().build(data)
+        assert len(text) > 0
+        print(text)    
 
         
   

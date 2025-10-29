@@ -4,6 +4,7 @@ from Src.Core.validator import operation_exception
 from Src.Core.validator import validator
 from Src.Models.company_model import company_model
 from Src.Core.common import common
+from Src.Core.response_formats import response_formats
 import os
 import json
 
@@ -57,8 +58,14 @@ class settings_manager:
 
                 if "company" in settings.keys():
                     data = settings["company"]
-                    return self.convert(data)
+                    result = self.convert(data)
+                
+                if "default_format" in settings.keys() and result == True:
+                    data = settings["default_format"]
+                    if data in response_formats.list_all_formats():
+                        self.settings.default_response_format = data
 
+                return result
             return False
         except:
             return False

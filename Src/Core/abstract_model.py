@@ -24,7 +24,10 @@ class abstact_model(ABC):
     def unique_code(self, value: str):
         validator.validate(value, str)
         self.__unique_code = value.strip()
-    
+
+    # Отдельный общий метод для формирования Dto структуры
+    def to_dto(self):
+        pass
 
     """
     Перегрузка штатного варианта сравнения

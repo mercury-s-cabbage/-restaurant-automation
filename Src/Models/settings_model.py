@@ -6,7 +6,7 @@ from Src.Core.response_formats import response_formats
 # Модель настроек приложения
 class settings_model:
     __company: company_model = None
-    __default_response_format:str =  response_formats .json
+    __default_response_format:str =  response_formats.csv()
 
     # Текущая организация
     @property

@@ -7,7 +7,7 @@ from Src.Core.common import common
 """
 class response_scv(abstract_response):
 
-    # Сформировать CSV
+    # Сформировать
     def build(self, data: list) -> str:
         text = super().build( data)
 
@@ -17,7 +17,14 @@ class response_scv(abstract_response):
         for field in fields:
             text += f"{field};"
 
+        text = text[:-1] + '\n'
+        
         # Данные
+        for obj in data:
+            for field in fields:
+                value = getattr(obj, field)
+                text += f"{value};"
+            text = text[:-1] + '\n'
 
-        return text    
+        return text.strip() 
 

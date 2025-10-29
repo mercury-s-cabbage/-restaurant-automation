@@ -12,6 +12,7 @@ class response_formats:
     def csv() -> str:
         return "csv"
     
+
     """
     Формат ответа json
     """
@@ -26,6 +27,7 @@ class response_formats:
     def markdown() -> str:
         return "markdown"
     
+    
     """
     Статический метод возвращает список всех поддерживаемых форматов данных
     """
@@ -37,7 +39,7 @@ class response_formats:
         # Фильтруем методы, выбирая только нужные (начинающиеся с имени метода)
         formats = []
         for method_name in methods:
-            if not method_name.startswith('__'):
+            if not method_name.startswith('__') and method_name != 'list_all_formats':
                 format_value = getattr(response_formats, method_name)()
                 formats.append(format_value)
                 
