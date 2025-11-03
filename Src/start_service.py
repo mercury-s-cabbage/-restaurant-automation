@@ -6,6 +6,8 @@ from Src.Core.validator import validator, argument_exception, operation_exceptio
 import os
 import json
 from Src.Models.receipt_model import receipt_model
+from Src.Models.company_model import company_model
+from Src.Models.settings_model import settings_model
 from Src.Models.receipt_item_model import receipt_item_model
 from Src.Models.storage_model import storage_model
 from Src.Models.transaction_model import transaction_model
@@ -197,7 +199,6 @@ class start_service:
         # Собираем рецепт
         compositions =  data['composition'] if 'composition' in data else []
         for composition in compositions:
-            # TODO: Заменить код через Dto
             namnomenclature_id = composition['nomenclature_id'] if 'nomenclature_id' in composition else ""
             range_id = composition['range_id'] if 'range_id' in composition else ""
             value  = composition['value'] if 'value' in composition else ""
@@ -221,10 +222,43 @@ class start_service:
     Основной метод для генерации эталонных данных
     """
     def start(self):
-        self.file_name = "settings.json"
+        saves_dir = os.path.abspath("../Patterns2025/Saves")
+
+        # Перебираем все файлы в директории Saves
+        if not os.path.exists(saves_dir) or not os.path.isdir(saves_dir):
+            raise operation_exception(f"Директория {saves_dir} не найдена")
+
+        for filename in os.listdir(saves_dir):
+            if filename.lower().endswith('.json'):
+                full_path = os.path.join(saves_dir, filename)
+                try:
+                    with open(full_path, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+
+                        # Проверяем параметр first_start
+                        if data.get("first_start") == "True":
+                            self.file_name = full_path
+                            break
+                except Exception as e:
+                    # Пропускаем файл при ошибке чтения
+                    continue
+
+
+        if self.file_name is None:
+            raise operation_exception(f"Не найден файл с параметром first_start: True в директории {saves_dir}")
+
+        # Загружаем
         result = self.load()
         if result == False:
             raise operation_exception("Невозможно сформировать стартовый набор данных!")
-        
 
+
+    def safe(self, filename: str, first_start_flag: str = "True"):
+        """
+        Сохраняет текущее состояние репозитория в JSON-файл.
+        :param filename: Путь к файлу сохранения
+        :param first_start_flag: Значение поля first_start ("True" по умолчанию)
+        :return: True при успешной записи
+        """
+        pass
 

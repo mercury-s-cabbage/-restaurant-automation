@@ -97,7 +97,6 @@ class transaction_model(abstact_model):
     def from_dto(dto: transaction_dto, cache: dict):
         validator.validate(dto, transaction_dto)
         validator.validate(cache, dict)
-        print(cache)
 
         # Получаем связанные объекты из кэша по id, если есть
         nomenclature = cache[str(dto.nomenclature_id).strip()] if str(dto.nomenclature_id).strip() in cache else None
