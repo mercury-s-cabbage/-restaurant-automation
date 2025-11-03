@@ -44,7 +44,6 @@ class test_start(unittest.TestCase):
     def test_notThrow_reposity_initialize(self):   
         # Подготовка
         repo = reposity()
-        print(repo.data)
 
         # Действие
         repo.initalize() 

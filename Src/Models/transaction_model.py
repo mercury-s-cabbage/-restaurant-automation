@@ -97,9 +97,10 @@ class transaction_model(abstact_model):
     def from_dto(dto: transaction_dto, cache: dict):
         validator.validate(dto, transaction_dto)
         validator.validate(cache, dict)
+        print(cache)
 
         # Получаем связанные объекты из кэша по id, если есть
-        nomenclature = cache[dto.nomenclature_id] if dto.nomenclature_id in cache else None
+        nomenclature = cache[str(dto.nomenclature_id).strip()] if str(dto.nomenclature_id).strip() in cache else None
         storage = cache[dto.storage_id] if dto.storage_id in cache else None
         unit = cache[dto.unit_id] if dto.unit_id in cache else None
         date_string = dto.date  # строка с датой, например "2025-11-03"

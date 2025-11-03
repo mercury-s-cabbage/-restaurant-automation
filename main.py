@@ -14,6 +14,9 @@ from collections import defaultdict
 from datetime import datetime
 from Src.Models.transaction_model import transaction_model
 from Src.Dtos.transaction_dto import transaction_dto
+import logging
+
+logger = logging.getLogger("uvicorn.error")
 #http://127.0.0.1:8081/docs#/default/add_transaction_api_transactions_post
 
 app = FastAPI()
@@ -81,26 +84,27 @@ class TransactionCreateRequest(BaseModel):
     storage_id: str
     quantity: float
     unit_id: str
-@app.post("/api/transactions")
-async def add_transaction(data: TransactionCreateRequest = Body(...)):
-
-    # Создаем DTO вручную
+@app.post("/api/transactions", response_class=PlainTextResponse)
+async def add_transaction(date: str = Query(..., description="Дата транзакции"),
+                          nomenclature_id: str = Query(..., description="id номенклатуры"),
+                          storage_id: str = Query(..., description="id склада"),
+                          quantity: float = Query(..., description="id склада"),
+                          unit_id: str = Query(..., description="id склада")
+                                                ):
     dto = transaction_dto()
-    dto.date = data.date
-    dto.nomenclature_id = data.nomenclature_id
-    dto.storage_id = data.storage_id
-    dto.quantity = data.quantity
-    dto.unit_id = data.unit_id
-    # id можно сгенерировать если нужно, или оставить как есть
+    dto.date = date
+    dto.nomenclature_id = nomenclature_id
+    dto.storage_id = storage_id
+    dto.quantity = quantity
+    dto.unit_id = unit_id
 
     # Создаем модель из DTO, передаем кэш из сервиса
-    item = transaction_model.from_dto(dto, service.repository.data)
+    item = transaction_model.from_dto(dto, service.cache)
 
     # Добавляем в репозиторий
     service.repository.data.setdefault(service.repository.transactions_key(), []).append(item)
 
-    return {"status": "success", "transaction_id": item.id}
-
+    return item.unique_code
 @app.get("/api/transactions_report")
 async def get_transactions_report(
     start_date: str = Query(..., description="Дата начала в формате ISO 8601, например 2025-11-01T00:00:00"),

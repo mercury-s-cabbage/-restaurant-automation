@@ -47,6 +47,10 @@ class start_service:
         return self.__full_file_name
 
     @property
+    def cache(self) -> dict:
+        return self.__cache
+
+    @property
     def default_format(self) -> str:
         return self.__default_format
 

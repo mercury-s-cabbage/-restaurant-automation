@@ -23,7 +23,7 @@ class nomenclature_model(entity_model):
 
     @group.setter
     def group(self, value: group_model):
-        validator.validate(value,entity_model )
+        validator.validate(value,entity_model)
         self.__group = value    
 
     """
@@ -56,7 +56,7 @@ class nomenclature_model(entity_model):
     def from_dto(dto:nomenclature_dto, cache:dict):
         validator.validate(dto, nomenclature_dto)
         validator.validate(cache, dict)
-        range =  cache[ dto.range_id ] if dto.range_id in cache else None
+        range = cache[ dto.range_id ] if dto.range_id in cache else None
         category =  cache[ dto.category_id] if dto.category_id in cache else None
         item  = nomenclature_model.create(dto.name, category, range)
         return item
