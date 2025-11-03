@@ -51,7 +51,7 @@ class test_models(unittest.TestCase):
     # Данные загружаем. Проверяем работу Singletone
     def test_loadCombo_createmodel_companymodel(self):
         # Подготовка
-        file_name = "./Tst/settings.json"
+        file_name = "./settings.json"
         manager1 = settings_manager()
         manager1.file_name = file_name
         manager2 = settings_manager()
