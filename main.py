@@ -147,16 +147,18 @@ async def get_transactions_report(
     # Пройдём по всем транзакциям для расчёта начального остатка
     for t in transactions:
         if t.storage.unique_code == storage_id and t.date < start_dt:
-            key = t.nomenclature.unique_code
-            qty = t.quantity
+            range = t.unit.base.unique_code if getattr(t.unit, 'base', None) else t.unit.unique_code
+            key = (t.nomenclature.unique_code, range) # храним номенклатуру и валюту на случай, если будут штуки и кг напр
+            qty = t.quantity * t.unit.value # приводим к одной валюте
             opening_balance[key] += qty
             if key not in unit_map:
-                unit_map[key] = t.unit.name  # или id, по вашей модели
+                unit_map[key] = t.unit.name
 
     # Пройдём по транзакциям в заданном периоде для подсчёта прихода и расхода
     for t in filtered:
-        key = t.nomenclature.unique_code
-        qty = t.quantity
+        range = t.unit.base.unique_code if getattr(t.unit, 'base', None) else t.unit.unique_code
+        key = (t.nomenclature.unique_code, range)
+        qty = t.quantity * t.unit.value
         if key not in unit_map:
             unit_map[key] = t.unit.name
 
