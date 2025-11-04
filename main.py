@@ -14,6 +14,9 @@ from collections import defaultdict
 from datetime import datetime
 from Src.Models.transaction_model import transaction_model
 from Src.Dtos.transaction_dto import transaction_dto
+import logging
+
+logger = logging.getLogger("uvicorn.error")
 #http://127.0.0.1:8081/docs#/default/add_transaction_api_transactions_post
 
 app = FastAPI()
@@ -81,25 +84,37 @@ class TransactionCreateRequest(BaseModel):
     storage_id: str
     quantity: float
     unit_id: str
-@app.post("/api/transactions")
-async def add_transaction(data: TransactionCreateRequest = Body(...)):
-
-    # Создаем DTO вручную
+@app.post("/api/transactions", response_class=PlainTextResponse)
+async def add_transaction(date: str = Query(..., description="Дата транзакции"),
+                          nomenclature_id: str = Query(..., description="id номенклатуры"),
+                          storage_id: str = Query(..., description="id склада"),
+                          quantity: float = Query(..., description="id склада"),
+                          unit_id: str = Query(..., description="id склада")
+                                                ):
     dto = transaction_dto()
-    dto.date = data.date
-    dto.nomenclature_id = data.nomenclature_id
-    dto.storage_id = data.storage_id
-    dto.quantity = data.quantity
-    dto.unit_id = data.unit_id
-    # id можно сгенерировать если нужно, или оставить как есть
+    dto.date = date
+    dto.nomenclature_id = nomenclature_id
+    dto.storage_id = storage_id
+    dto.quantity = quantity
+    dto.unit_id = unit_id
 
     # Создаем модель из DTO, передаем кэш из сервиса
-    item = transaction_model.from_dto(dto, service.repository.data)
+    item = transaction_model.from_dto(dto, service.cache)
 
     # Добавляем в репозиторий
     service.repository.data.setdefault(service.repository.transactions_key(), []).append(item)
 
-    return {"status": "success", "transaction_id": item.id}
+    return item.unique_code
+
+@app.post("/api/save_repository", response_class=PlainTextResponse)
+async def save_repository(filename: str = Body(..., embed=True)) -> str:
+    try:
+        result = service.save(filename)
+        if result:
+            return "Репозиторий успешно сохранён"
+        return "Ошибка при сохранении репозитория"
+    except Exception as e:
+        return f"Ошибка: {e}"
 
 @app.get("/api/transactions_report")
 async def get_transactions_report(
@@ -132,16 +147,18 @@ async def get_transactions_report(
     # Пройдём по всем транзакциям для расчёта начального остатка
     for t in transactions:
         if t.storage.unique_code == storage_id and t.date < start_dt:
-            key = t.nomenclature.unique_code
-            qty = t.quantity
+            range = t.unit.base.unique_code if getattr(t.unit, 'base', None) else t.unit.unique_code
+            key = (t.nomenclature.unique_code, range) # храним номенклатуру и валюту на случай, если будут штуки и кг напр
+            qty = t.quantity * t.unit.value # приводим к одной валюте
             opening_balance[key] += qty
             if key not in unit_map:
-                unit_map[key] = t.unit.name  # или id, по вашей модели
+                unit_map[key] = t.unit.name
 
     # Пройдём по транзакциям в заданном периоде для подсчёта прихода и расхода
     for t in filtered:
-        key = t.nomenclature.unique_code
-        qty = t.quantity
+        range = t.unit.base.unique_code if getattr(t.unit, 'base', None) else t.unit.unique_code
+        key = (t.nomenclature.unique_code, range)
+        qty = t.quantity * t.unit.value
         if key not in unit_map:
             unit_map[key] = t.unit.name
 

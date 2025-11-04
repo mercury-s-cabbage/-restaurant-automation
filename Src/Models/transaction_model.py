@@ -52,8 +52,6 @@ class transaction_model(abstact_model):
     @quantity.setter
     def quantity(self, value: float):
         validator.validate(value, (int, float))
-        if value <= 0:
-            raise argument_exception("Количество должно быть положительным числом")
         self.__quantity = float(value)
 
     # Единица измерения
@@ -99,7 +97,7 @@ class transaction_model(abstact_model):
         validator.validate(cache, dict)
 
         # Получаем связанные объекты из кэша по id, если есть
-        nomenclature = cache[dto.nomenclature_id] if dto.nomenclature_id in cache else None
+        nomenclature = cache[str(dto.nomenclature_id).strip()] if str(dto.nomenclature_id).strip() in cache else None
         storage = cache[dto.storage_id] if dto.storage_id in cache else None
         unit = cache[dto.unit_id] if dto.unit_id in cache else None
         date_string = dto.date  # строка с датой, например "2025-11-03"

@@ -1,9 +1,10 @@
 from Src.settings_manager import settings_manager
 from Src.Models.company_model import company_model
 import unittest
-from Src.Models.storage_model import storage_model
 import uuid
 from Src.Models.nomenclature_model import nomenclature_model
+from Src.Models.storage_model import storage_model
+from Src.Models.transaction_model import transaction_model
 
 class test_models(unittest.TestCase):
 
@@ -94,6 +95,25 @@ class test_models(unittest.TestCase):
 
         # Проверки
         assert item1 == item2
+
+    # Проверить создание модели склада
+    def test_empty_createmodel_storage_model(self):
+        model = storage_model()
+        assert model.unique_code != ""
+
+    # Проверить создание модели транзакции
+    def test_empty_createmodel_transaction_model(self):
+        model = transaction_model()
+        assert model.unique_code != ""
+
+    # Проверить заполнение некоторых полей транзакции
+    def test_fill_fields_transaction_model(self):
+        model = transaction_model()
+        model.unique_code = uuid.uuid4().hex
+        model.amount = 100
+        model.description = "Test transaction"
+        assert model.amount == 100
+        assert model.description == "Test transaction"
 
     
   
