@@ -52,8 +52,6 @@ class transaction_model(abstact_model):
     @quantity.setter
     def quantity(self, value: float):
         validator.validate(value, (int, float))
-        if value <= 0:
-            raise argument_exception("Количество должно быть положительным числом")
         self.__quantity = float(value)
 
     # Единица измерения

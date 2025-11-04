@@ -105,6 +105,17 @@ async def add_transaction(date: str = Query(..., description="Дата тран�
     service.repository.data.setdefault(service.repository.transactions_key(), []).append(item)
 
     return item.unique_code
+
+@app.post("/api/save_repository", response_class=PlainTextResponse)
+async def save_repository(filename: str = Body(..., embed=True)) -> str:
+    try:
+        result = service.save(filename)
+        if result:
+            return "Репозиторий успешно сохранён"
+        return "Ошибка при сохранении репозитория"
+    except Exception as e:
+        return f"Ошибка: {e}"
+
 @app.get("/api/transactions_report")
 async def get_transactions_report(
     start_date: str = Query(..., description="Дата начала в формате ISO 8601, например 2025-11-01T00:00:00"),

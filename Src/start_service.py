@@ -1,4 +1,6 @@
 from Src.reposity import reposity
+from Src.Logics.factory_entities import factory_entities
+from Src.Core.response_formats import response_formats
 from Src.Models.range_model import range_model
 from Src.Models.group_model import group_model
 from Src.Models.nomenclature_model import nomenclature_model
@@ -16,6 +18,7 @@ from Src.Dtos.range_dto import range_dto
 from Src.Dtos.category_dto import category_dto
 from Src.Dtos.storage_dto import storage_dto
 from Src.Dtos.transaction_dto import transaction_dto
+from Src.Logics.response_json import response_json
 
 class start_service:
     # Репозиторий
@@ -253,12 +256,23 @@ class start_service:
             raise operation_exception("Невозможно сформировать стартовый набор данных!")
 
 
-    def safe(self, filename: str, first_start_flag: str = "True"):
+    def save(self, filename: str, first_start_flag: str = "True"):
         """
         Сохраняет текущее состояние репозитория в JSON-файл.
         :param filename: Путь к файлу сохранения
         :param first_start_flag: Значение поля first_start ("True" по умолчанию)
         :return: True при успешной записи
         """
-        pass
+        try:
+            responses = {}
+            with open(filename, 'w', encoding='utf-8') as f:
+                factory = factory_entities()
+                instance = factory.create( response_formats.csv() )
+                for key in self.repository.data:
+                    resp = instance().build(self.repository.data[key])
+                    responses[str(key)] = resp
+                json.dump(responses, f, ensure_ascii=False, indent=2)
+            return True
+        except Exception as e:
+            return False
 
