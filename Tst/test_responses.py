@@ -20,7 +20,6 @@ class test_responses(unittest.TestCase):
 
         # Проверка
         assert len(result) > 0
-        print(result)
 
   
 if __name__ == '__main__':

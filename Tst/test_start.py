@@ -1,3 +1,5 @@
+import os
+
 from Src.reposity import reposity
 from Src.start_service import start_service
 import unittest
@@ -46,8 +48,23 @@ class test_start(unittest.TestCase):
         repo = reposity()
 
         # Действие
-        repo.initalize() 
+        repo.initalize()
 
+    # Проверить создание непустого файла сохранений
+    def test_save_creates_nonempty_file(self):
+        start = start_service()
+        start.start()  # загрузить данные перед сохранением
+
+        filename = "test_save_output.json"
+        try:
+            result = start.save(filename)
+            self.assertTrue(result)
+            self.assertTrue(os.path.exists(filename))
+            self.assertTrue(os.path.getsize(filename) > 0)
+        finally:
+            # Удаляем файл после проверки, чтобы не засорять систему
+            if os.path.exists(filename):
+                os.remove(filename)
 
 
           

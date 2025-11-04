@@ -225,7 +225,8 @@ class start_service:
     Основной метод для генерации эталонных данных
     """
     def start(self):
-        saves_dir = os.path.abspath("../Patterns2025/Saves")
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        saves_dir = os.path.abspath(os.path.join(current_dir, "..", "Saves"))
 
         # Перебираем все файлы в директории Saves
         if not os.path.exists(saves_dir) or not os.path.isdir(saves_dir):

@@ -29,7 +29,6 @@ class test_logics(unittest.TestCase):
         data = []
         entity = group_model.create( "test" )
         data.append( entity )
-        print(data)
 
         # Действие
         instance = factory.create( response_formats.csv() )
@@ -38,7 +37,6 @@ class test_logics(unittest.TestCase):
         assert instance is not None
         text = instance().build(data)
         assert len(text) > 0
-        print(text)
 
 
     
