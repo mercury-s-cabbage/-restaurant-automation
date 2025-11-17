@@ -1,20 +1,21 @@
 from enum import Enum
 from fastapi import FastAPI, Query, HTTPException, Body
 from fastapi.responses import PlainTextResponse, StreamingResponse
-from pydantic import BaseModel
-
 from Src.Logics.response_markdown import response_markdown
 from Src.start_service import start_service
 from Src.Logics.response_csv import response_scv
 from Src.Logics.response_xml import response_xml
 from Src.Logics.response_json import response_json
 import io
+from typing import Dict, Any, List
 import uvicorn
-from collections import defaultdict
-from datetime import datetime
 from Src.Models.transaction_model import transaction_model
 from Src.Dtos.transaction_dto import transaction_dto
 import logging
+from Src.Core.prototype import prototype
+from Src.Dtos.filter_dto import filter_dto
+from Src.Core.validator import argument_exception
+from collections import defaultdict
 
 logger = logging.getLogger("uvicorn.error")
 #http://127.0.0.1:8081/docs#/default/add_transaction_api_transactions_post
@@ -32,10 +33,12 @@ except Exception as e:
 repo_keys = service.repository.keys()
 RepoKeyEnum = Enum('RepoKeyEnum', [(key, key) for key in repo_keys], type=str)
 
+# Проверка доступа
 @app.get("/api/accessibility", response_class=PlainTextResponse)
 async def formats():
     return "SUCCESS"
 
+# Вывести справочник всех моделей
 @app.get("/api/dictionary", response_class=PlainTextResponse)
 async def get_dictionary(
     name: str = Query(..., description="Название справочника"),
@@ -60,6 +63,7 @@ async def get_dictionary(
 
     return text
 
+# Скачать справочник всех моделей
 @app.get("/api/file")
 async def get_file(name: str = Query(..., description="Название справочника")):
     data_list = service.repository.data.get(name, [])
@@ -78,18 +82,15 @@ async def get_file(name: str = Query(..., description="Название спра
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
-class TransactionCreateRequest(BaseModel):
-    date: str
-    nomenclature_id: str
-    storage_id: str
-    quantity: float
-    unit_id: str
+
+
+# Добавить новую транзакцию
 @app.post("/api/transactions", response_class=PlainTextResponse)
 async def add_transaction(date: str = Query(..., description="Дата транзакции"),
                           nomenclature_id: str = Query(..., description="id номенклатуры"),
                           storage_id: str = Query(..., description="id склада"),
-                          quantity: float = Query(..., description="id склада"),
-                          unit_id: str = Query(..., description="id склада")
+                          quantity: float = Query(..., description="количество"),
+                          unit_id: str = Query(..., description="единица измерения")
                                                 ):
     dto = transaction_dto()
     dto.date = date
@@ -106,6 +107,7 @@ async def add_transaction(date: str = Query(..., description="Дата тран�
 
     return item.unique_code
 
+# Сохранить текущее состояние репозитория
 @app.post("/api/save_repository", response_class=PlainTextResponse)
 async def save_repository(filename: str = Body(..., embed=True)) -> str:
     try:
@@ -116,76 +118,65 @@ async def save_repository(filename: str = Body(..., embed=True)) -> str:
     except Exception as e:
         return f"Ошибка: {e}"
 
-@app.get("/api/transactions_report")
-async def get_transactions_report(
-    start_date: str = Query(..., description="Дата начала в формате ISO 8601, например 2025-11-01T00:00:00"),
-    end_date: str = Query(..., description="Дата окончания в формате ISO 8601, например 2025-11-30T23:59:59"),
-    storage_id: str = Query(..., description="ID склада")
+# Получить отфильтрованные модели
+@app.post("/api/{model_name}/filter")
+async def filter_model(
+    model_name: str,
+    request: Dict[str, Any]
 ):
-    # Преобразуем строки в datetime
-    try:
-        start_dt = datetime.strptime(start_date, "%Y-%m-%dT%H:%M:%S")
-        end_dt = datetime.strptime(end_date, "%Y-%m-%dT%H:%M:%S")
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Неверный формат даты")
 
-    # Получаем все транзакции из репозитория
-    transactions = service.repository.data.get(service.repository.transactions_key(), [])
+    # динамически получаем ключ для модели из репозитория
+    if hasattr(service.repository, f"{model_name}_key"):
+        model_key = getattr(service.repository, f"{model_name}_key")()
+    else:
+        raise argument_exception("Некорректное имя модели")
 
-    # Отфильтруем по дате и складу
-    filtered = [
-        t for t in transactions
-        if (start_dt <= t.date <= end_dt) and (t.storage.unique_code == storage_id)
-    ]
+    # первичный прототип со всеми данными указанной модели
+    model_data = service.repository.data.get(model_key, [])
+    result = prototype(model_data)
 
-    # Словари для подсчёта остатков и движений
-    opening_balance = defaultdict(float)
-    incoming = defaultdict(float)
-    outgoing = defaultdict(float)
-    unit_map = {}
+    # ключ, по которому будут храниться прототипы (будет дописываться)
+    repo_key = f"{model_name}"
 
-    # Пройдём по всем транзакциям для расчёта начального остатка
-    for t in transactions:
-        if t.storage.unique_code == storage_id and t.date < start_dt:
-            range = t.unit.base.unique_code if getattr(t.unit, 'base', None) else t.unit.unique_code
-            key = (t.nomenclature.unique_code, range) # храним номенклатуру и валюту на случай, если будут штуки и кг напр
-            qty = t.quantity * t.unit.value # приводим к одной валюте
-            opening_balance[key] += qty
-            if key not in unit_map:
-                unit_map[key] = t.unit.name
+    # сортируем фильтры по полю filter_name чтобы в ключах они были в одном порядке
+    sorted_filters = sorted(request["filters"], key=lambda f: f["filter_name"])
 
-    # Пройдём по транзакциям в заданном периоде для подсчёта прихода и расхода
-    for t in filtered:
-        range = t.unit.base.unique_code if getattr(t.unit, 'base', None) else t.unit.unique_code
-        key = (t.nomenclature.unique_code, range)
-        qty = t.quantity * t.unit.value
-        if key not in unit_map:
-            unit_map[key] = t.unit.name
+    # перебираем пришедшие фильтры
+    for filter in sorted_filters:
 
-        if qty > 0:
-            incoming[key] += qty
-        elif qty < 0:
-            outgoing[key] += abs(qty)  # учитываем положительное значение для расхода
+        # создаем ДТО фильтра
+        filter_obj = filter_dto()
+        for key, value in filter.items():
+            if hasattr(filter_obj, key):
+                setattr(filter_obj, key, str(value))
 
-    # Сформируем итоговый отчет
-    result = []
-    for nom_id in set(list(opening_balance.keys()) + list(incoming.keys()) + list(outgoing.keys())):
-        start_bal = opening_balance.get(nom_id, 0)
-        inc = incoming.get(nom_id, 0)
-        out = outgoing.get(nom_id, 0)
-        end_bal = start_bal + inc - out
+        # дополняем ключ прототипа согласно полю фильтрации
+        repo_key += f"_{filter["filter_name"]}_{filter["filter_type"]}_{filter["filter_value"]}" # например range_equal_kg
+        print(f"filter key = {repo_key}\n")
 
-        row = {
-            "NomenclatureId": nom_id,
-            "Unit": unit_map.get(nom_id, ""),
-            "OpeningBalance": start_bal,
-            "Incoming": inc,
-            "Outgoing": out,
-            "EndingBalance": end_bal,
-        }
-        result.append(row)
+        # проверяем на наличие уже существующего прототипа
+        if repo_key in service.repository.data:
+            result = service.repository.data[repo_key]
+        else:
+            # сохраняем в репозиторий в случае, если там нету
+            result = result.filter(filter_obj)
+            service.repository.data.setdefault(repo_key, result)
+
+        # если прототип пустой, нет смысла фильтровать дальше
+        if result == []:
+            break
 
     return result
+
+    # Получить ОСВ
+
+
+@app.post("/api/transactions_report")
+async def get_transactions_report(
+        request: Dict[str, Any]  # фильтры в теле запроса
+):
+    pass
+
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8081, reload=True)
