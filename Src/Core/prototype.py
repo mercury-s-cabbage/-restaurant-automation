@@ -36,6 +36,8 @@ class prototype:
 
         ops = {
             "==": operator.eq,
+            ">": operator.gt,
+            "<": operator.lt,
             ">=": operator.ge,
             "<=": operator.le,
             "like": operator.contains
@@ -43,7 +45,7 @@ class prototype:
 
         # не фильтруем пустые данные
         if len(self.data) == 0:
-            return self.data
+            return self.clone(self.data)
 
         validator.validate(filter_params, filter_dto)
 

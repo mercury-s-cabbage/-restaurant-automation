@@ -9,7 +9,8 @@ class argument_exception(Exception):
 Исключение при выполнении бизнес операции
 """  
 class operation_exception(Exception):
-    pass    
+    pass
+
     
 
 """

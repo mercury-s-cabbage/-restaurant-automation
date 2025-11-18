@@ -152,7 +152,6 @@ async def filter_model(
 
         # дополняем ключ прототипа согласно полю фильтрации
         repo_key += f"_{filter["filter_name"]}_{filter["filter_type"]}_{filter["filter_value"]}" # например range_equal_kg
-        print(f"filter key = {repo_key}\n")
 
         # проверяем на наличие уже существующего прототипа
         if repo_key in service.repository.data:
@@ -173,9 +172,125 @@ async def filter_model(
 
 @app.post("/api/transactions_report")
 async def get_transactions_report(
-        request: Dict[str, Any]  # фильтры в теле запроса
+        request: Dict[str, Any]
 ):
-    pass
+
+    # первичный прототип со всеми транзакциями
+    all_transactions = service.repository.data.get(service.repository.transactions_key(), [])
+    all_transactions_p = prototype(all_transactions)
+
+    # ключ, по которому будут храниться прототипы (будет дописываться)
+    start_repo_key = f"{service.repository.transactions_key()}"
+
+    filters = request.get("filters", [])
+
+    # извлекаем нужные параметры фильтрации
+    start_date_f = None
+    end_date_f = None
+    storage_f = None
+
+    for f in filters:
+        if f.get("filter_name") == "date" and f.get("filter_type") == ">":
+            start_date_f = f
+        elif f.get("filter_name") == "date" and f.get("filter_type") == "<":
+            end_date_f = f
+        elif f.get("filter_name") == "storage" and f.get("filter_type") == "==":
+            storage_f = f
+
+    # проверяем наличие обязательных параметров
+    if not start_date_f or not end_date_f or not storage_f:
+        raise HTTPException(
+            status_code=400,
+            detail="Отсутствуют обязательные фильтры: 'date >', 'date <', 'storage =='"
+        )
+
+    repo_key = start_repo_key + f"_{storage_f["filter_name"]}_{storage_f["filter_type"]}_{storage_f["filter_value"]}"
+    storage_filtered = use_filter(all_transactions_p, storage_f, repo_key)
+
+    repo_key += f"_{start_date_f["filter_name"]}_{start_date_f["filter_type"]}_{start_date_f["filter_value"]}"
+    start_date_filtered = use_filter(storage_filtered, start_date_f, repo_key)
+
+    repo_key += f"_{start_date_f["filter_name"]}_{start_date_f["filter_type"]}_{start_date_f["filter_value"]}"
+    end_date_filtered = use_filter(start_date_filtered, end_date_f, repo_key)
+
+    start_date_f["filter_type"] = "<"
+    opening_key = start_repo_key + f"_{start_date_f["filter_name"]}_{start_date_f["filter_type"]}_{start_date_f["filter_value"]}"
+    open_filtered = use_filter(all_transactions_p, start_date_f, opening_key)
+
+    # Словари для подсчёта остатков и движений
+    opening_balance = defaultdict(float)
+    incoming = defaultdict(float)
+    outgoing = defaultdict(float)
+    unit_map = {}
+
+    # Пройдём по всем транзакциям для расчёта начального остатка
+    for t in open_filtered.data:
+        range = t.unit.base.unique_code if getattr(t.unit, 'base', None) else t.unit.unique_code
+        key = (t.nomenclature.unique_code, range) # храним номенклатуру и валюту на случай, если будут штуки и кг напр
+        qty = t.quantity * t.unit.value # приводим к одной валюте
+        opening_balance[key] += qty
+        if key not in unit_map:
+            unit_map[key] = t.unit.name
+
+    # Пройдём по транзакциям в заданном периоде для подсчёта прихода и расхода
+    for t in end_date_filtered.data:
+        range = t.unit.base.unique_code if getattr(t.unit, 'base', None) else t.unit.unique_code
+        key = (t.nomenclature.unique_code, range)
+        qty = t.quantity * t.unit.value
+        if key not in unit_map:
+            unit_map[key] = t.unit.name
+
+        if qty > 0:
+            incoming[key] += qty
+        elif qty < 0:
+            outgoing[key] += abs(qty)
+
+    # Сформируем итоговый отчет
+    result = []
+    for nom_id in set(list(opening_balance.keys()) + list(incoming.keys()) + list(outgoing.keys())):
+        start_bal = opening_balance.get(nom_id, 0)
+        inc = incoming.get(nom_id, 0)
+        out = outgoing.get(nom_id, 0)
+        end_bal = start_bal + inc - out
+
+        row = {
+            "NomenclatureId": nom_id,
+            "Unit": unit_map.get(nom_id, ""),
+            "OpeningBalance": start_bal,
+            "Incoming": inc,
+            "Outgoing": out,
+            "EndingBalance": end_bal,
+        }
+        result.append(row)
+
+    return result
+
+
+
+
+def use_filter(start_p: prototype, f: dict, repo_key: str = ""):
+
+    # проверяем на наличие уже существующего фильтра
+    if repo_key in service.repository.data:
+        filtered_p = service.repository.data[repo_key]
+    else:
+        # создадим фильтр склада
+        f_obj = filter_dto()
+        for key, value in f.items():
+            if hasattr(f_obj, key):
+                setattr(f_obj, key, str(value))
+        filtered_p = start_p.filter(f_obj)
+        service.repository.data.setdefault(repo_key, filtered_p)
+
+    return filtered_p
+
+
+
+
+
+
+
+    
 
 
 if __name__ == "__main__":
