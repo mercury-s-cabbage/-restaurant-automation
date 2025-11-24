@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from Src.reposity import reposity
 from Src.Logics.factory_entities import factory_entities
 from Src.Core.response_formats import response_formats
@@ -19,10 +21,18 @@ from Src.Dtos.category_dto import category_dto
 from Src.Dtos.storage_dto import storage_dto
 from Src.Dtos.transaction_dto import transaction_dto
 from Src.Logics.response_json import response_json
+from Src.Core.prototype_inspector import prototype_inspector
+from Src.Core.prototype import prototype
 
 class start_service:
     # Репозиторий
     __repo: reposity = reposity()
+
+    # Хранилище кэша запросов пользователей
+    __requests: prototype_inspector = prototype_inspector()
+
+    # Дата, с которой начинается открытый период
+    __block_period: str
 
     # Рецепт по умолчанию
     __default_receipt: receipt_model
@@ -39,6 +49,7 @@ class start_service:
 
     def __init__(self):
         self.__repo.initalize()
+        self.__requests.initalize()
 
     # Singletone
     def __new__(cls):
@@ -87,7 +98,10 @@ class start_service:
                     data = settings
                     if "default_format" in settings:
                         self.__default_format = settings["default_format"]
-                    return self.convert(data)
+                    if "block_period" in settings:
+                        self.__block_period = settings["block_period"]
+                    if self.convert(data):
+                        return self.__load_past_data()
 
             return False
         except Exception as e:
@@ -215,6 +229,21 @@ class start_service:
         return True
 
     """
+    Добавляем в кэш данные о закрытом периоде
+    """
+    def __load_past_data(self) -> bool:
+        try:
+            all_transactions = self.repository.data.get(self.repository.transactions_key(), [])
+            all_transactions_p = prototype(all_transactions)
+
+            # Сохраняем в кэше остатки за закрытый период
+            self.__requests.count_blocking_cash(all_transactions_p, self.__block_period)
+        except:
+            raise operation_exception("Не вышло загрузить остатки!")
+        return True
+
+
+    """
     Стартовый набор данных
     """
     @property
@@ -257,6 +286,7 @@ class start_service:
             raise operation_exception("Невозможно сформировать стартовый набор данных!")
 
 
+
     def save(self, filename: str, first_start_flag: str = "True"):
         """
         Сохраняет текущее состояние репозитория в JSON-файл.
@@ -276,4 +306,3 @@ class start_service:
             return True
         except Exception as e:
             return False
-

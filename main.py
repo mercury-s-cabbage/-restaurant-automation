@@ -125,7 +125,7 @@ async def filter_model(
     request: Dict[str, Any]
 ):
 
-    # динамически получаем ключ для модели из репозитория
+    # получаем ключ для модели из репозитория
     if hasattr(service.repository, f"{model_name}_key"):
         model_key = getattr(service.repository, f"{model_name}_key")()
     else:
@@ -134,6 +134,8 @@ async def filter_model(
     # первичный прототип со всеми данными указанной модели
     model_data = service.repository.data.get(model_key, [])
     result = prototype(model_data)
+
+    result.filter_many(model_name=model_name, filters=request["filters"], )
 
     # ключ, по которому будут храниться прототипы (будет дописываться)
     repo_key = f"{model_name}"
@@ -167,7 +169,6 @@ async def filter_model(
 
     return result
 
-    # Получить ОСВ
 
 
 @app.post("/api/transactions_report")
@@ -265,6 +266,52 @@ async def get_transactions_report(
 
     return result
 
+@app.post("/api/transactions_report_blocking_date")
+async def get_transactions_report(
+        request: Dict[str, Any]
+):
+    # первичный прототип со всеми транзакциями
+    all_transactions = service.repository.data.get(service.repository.transactions_key(), [])
+    all_transactions_p = prototype(all_transactions)
+
+    # ключ, по которому будут храниться прототипы (будет дописываться)
+    start_repo_key = f"{service.repository.transactions_key()}"
+
+    filters = request.get("filters", [])
+
+    # извлекаем нужные параметры фильтрации
+    start_date_f = None
+    end_date_f = None
+    storage_f = None
+
+    for f in filters:
+        if f.get("filter_name") == "date" and f.get("filter_type") == ">":
+            start_date_f = f
+        elif f.get("filter_name") == "date" and f.get("filter_type") == "<":
+            end_date_f = f
+        elif f.get("filter_name") == "storage" and f.get("filter_type") == "==":
+            storage_f = f
+
+    # проверяем наличие обязательных параметров
+    if not start_date_f or not end_date_f or not storage_f:
+        raise HTTPException(
+            status_code=400,
+            detail="Отсутствуют обязательные фильтры: 'date >', 'date <', 'storage =='"
+        )
+
+    repo_key = start_repo_key + f"_{start_date_f["filter_name"]}_{start_date_f["filter_type"]}_{start_date_f["filter_value"]}"
+
+    if repo_key in service.repository.data:
+        filtered_p = service.repository.data[repo_key]
+    else:
+        f_obj = filter_dto()
+        for key, value in start_date_f.items():
+            if hasattr(f_obj, key):
+                setattr(f_obj, key, str(value))
+        filtered_p = all_transactions_p.filter(f_obj)
+        service.repository.data.setdefault(repo_key, filtered_p)
+
+    pass
 
 
 
