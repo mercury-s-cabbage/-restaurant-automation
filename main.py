@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import Enum
 from fastapi import FastAPI, Query, HTTPException, Body
 from fastapi.responses import PlainTextResponse, StreamingResponse
@@ -364,7 +365,13 @@ async def get_transactions_report_blocking_date(
 
     return result
 
-
+@app.post("/api/change_blocking_date")
+async def change_blocking_date(
+        request: datetime
+):
+    service.blocking_date = str(request)
+    service.load_past_data()
+    return service.blocking_date
 
 
 if __name__ == "__main__":

@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from Src.reposity import reposity
 from Src.Logics.factory_entities import factory_entities
 from Src.Core.response_formats import response_formats
@@ -10,8 +8,6 @@ from Src.Core.validator import validator, argument_exception, operation_exceptio
 import os
 import json
 from Src.Models.receipt_model import receipt_model
-from Src.Models.company_model import company_model
-from Src.Models.settings_model import settings_model
 from Src.Models.receipt_item_model import receipt_item_model
 from Src.Models.storage_model import storage_model
 from Src.Models.transaction_model import transaction_model
@@ -20,7 +16,6 @@ from Src.Dtos.range_dto import range_dto
 from Src.Dtos.category_dto import category_dto
 from Src.Dtos.storage_dto import storage_dto
 from Src.Dtos.transaction_dto import transaction_dto
-from Src.Logics.response_json import response_json
 from Src.Core.prototype_inspector import prototype_inspector
 from Src.Core.prototype import prototype
 
@@ -80,6 +75,10 @@ class start_service:
     def blocking_date(self):
         return self.__block_period
 
+    @blocking_date.setter
+    def blocking_date(self, value):
+        self.__block_period = value
+
     @property
     def default_format(self) -> str:
         return self.__default_format
@@ -115,7 +114,7 @@ class start_service:
                     if "block_period" in settings:
                         self.__block_period = settings["block_period"]
                     if self.convert(data):
-                        return self.__load_past_data()
+                        return self.load_past_data()
 
             return False
         except Exception as e:
@@ -245,7 +244,7 @@ class start_service:
     """
     Добавляем в кэш данные о закрытом периоде
     """
-    def __load_past_data(self) -> bool:
+    def load_past_data(self) -> bool:
         try:
             all_transactions = self.repository.data.get(self.repository.transactions_key(), [])
             all_transactions_p = prototype(all_transactions)
@@ -321,3 +320,5 @@ class start_service:
             return True
         except Exception as e:
             return False
+
+
