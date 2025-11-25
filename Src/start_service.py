@@ -34,6 +34,9 @@ class start_service:
     # Дата, с которой начинается открытый период
     __block_period: str
 
+    # Дата, с которой начинается открытый период
+    __current_transactions: prototype
+
     # Рецепт по умолчанию
     __default_receipt: receipt_model
 
@@ -65,6 +68,17 @@ class start_service:
     @property
     def cache(self) -> dict:
         return self.__cache
+
+    @property
+    def requests(self):
+        return self.__requests
+
+    @property
+    def current_transactions(self):
+        return self.__current_transactions
+    @property
+    def blocking_date(self):
+        return self.__block_period
 
     @property
     def default_format(self) -> str:
@@ -236,8 +250,9 @@ class start_service:
             all_transactions = self.repository.data.get(self.repository.transactions_key(), [])
             all_transactions_p = prototype(all_transactions)
 
-            # Сохраняем в кэше остатки за закрытый период
-            self.__requests.count_blocking_cash(all_transactions_p, self.__block_period)
+            # Сохраняем в кэше остатки за закрытый период, получаем только текущие транзакции
+            current_transactions = self.__requests.count_blocking_cash(all_transactions_p, self.__block_period)
+            self.__current_transactions = current_transactions
         except:
             raise operation_exception("Не вышло загрузить остатки!")
         return True

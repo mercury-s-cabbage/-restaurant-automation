@@ -1,3 +1,6 @@
+from collections import defaultdict
+from Src.reposity import reposity
+
 from Src.Core.prototype import prototype
 from Src.Dtos.filter_dto import filter_dto, FilterOperator
 
@@ -23,9 +26,35 @@ class prototype_inspector:
     """
     @staticmethod
     def current_data_key():
-        return "past_data"
+        return "current_data"
 
-    def count_blocking_cash(self, transactions: prototype, blocking_data):
+
+    """
+    Распоряжается фильтрацией и кэшированием запросов 
+    """
+    def use_filter(self, start_p: prototype, f: dict, repo_key: str = ""):
+        repo = self.data[self.current_data_key()]
+
+        # проверяем на наличие уже существующего фильтра
+        if repo_key in repo:
+            filtered_p = repo[repo_key]
+        else:
+            # создадим фильтр склада
+            f_obj = filter_dto()
+            for key, value in f.items():
+                if hasattr(f_obj, key):
+                    setattr(f_obj, key, str(value))
+            filtered_p = start_p.filter(f_obj)
+            repo.setdefault(repo_key, filtered_p)
+
+        return filtered_p
+
+
+    """
+    Считает и сохраняет в репозиторий остатки до даты блокировки
+    """
+
+    def count_blocking_cash(self, transactions: prototype, blocking_data) -> prototype:
 
         # Получим все существующие склады и номенклатуры
         storages = []
@@ -40,17 +69,19 @@ class prototype_inspector:
         f_obj = filter_dto()
         f_obj.filter_name = "date"
         f_obj.filter_value = blocking_data
-        f_obj.filter_type = ">="
+        f_obj.filter_type = "<="
         date_filtered = transactions.filter(f_obj)
 
         for s in storages:
-            result = 0
+            result = defaultdict(float)
+            unit_map = {}
 
             f_obj.filter_name = "storage"
             f_obj.value_type = "id"
             f_obj.filter_value = str(s)
             f_obj.filter_type = "=="
             storage_filtered = date_filtered.filter(f_obj)
+
             for n in nomenclatures:
                 f_obj.filter_name = "nomenclature"
                 f_obj.value_type = "id"
@@ -60,11 +91,24 @@ class prototype_inspector:
 
                 # Пройдём по всем транзакциям для расчёта начального остатка
                 for t in filtered.data:
-                    range = t.unit.base.unique_code if getattr(t.unit, 'base', None) else t.unit.unique_code
+                    real_range = t.unit.base.unique_code if getattr(t.unit, 'base', None) else t.unit.unique_code
+                    key = (t.nomenclature.unique_code,
+                           real_range)  # храним номенклатуру и валюту на случай, если будут штуки и кг напр
                     qty = t.quantity * t.unit.value  # приводим к одной валюте
-                    result += qty
-                self.data[ self.past_data_key() ].setdefault(f"{blocking_data}_{s}_{n}", result)
-        return True
+                    result[key] += qty
+                    if key not in unit_map:
+                        unit_map[key] = t.unit.name
+
+            self.data[ self.past_data_key() ].setdefault(f"{blocking_data}_{s}", result)
+
+        # получим только текущие транзакции
+        f_obj = filter_dto()
+        f_obj.filter_name = "date"
+        f_obj.filter_value = blocking_data
+        f_obj.filter_type = ">"
+        result = transactions.filter(f_obj)
+
+        return result
 
     """
     Получить список всех ключей
