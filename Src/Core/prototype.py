@@ -1,14 +1,13 @@
-from  Src.Models.nomenclature_model import nomenclature_model
-from abc import ABC
 from Src.Core.validator import validator, argument_exception
 from Src.Dtos.filter_dto import filter_dto
 from Src.Core.common import common
 import operator
 from operator import attrgetter
-
+from Src.reposity import reposity
 class prototype:
 
     __data = []
+    __repo = reposity()
 
     def __init__(self, data: list):
         self.data = data
@@ -22,6 +21,10 @@ class prototype:
         validator.validate(value, list)
         self.__data = value
 
+    @property
+    def repo(self):
+        return self.__repo
+
     def clone(self, data: list = None) -> "prototype":
         inner_data = None
         if data is None:
@@ -31,6 +34,7 @@ class prototype:
 
         response = prototype(inner_data)
         return response
+
 
     def filter(self, filter_params: filter_dto):
 
@@ -84,5 +88,39 @@ class prototype:
             result = sorted(result, key=sort_key)
 
         return self.clone(result)
+
+    def filter_many(self, model_name, filters: [], result):
+
+        # ключ, по которому будут храниться прототипы (будет дописываться)
+        repo_key = f"{model_name}"
+
+        # сортируем фильтры по полю filter_name чтобы в ключах они были в одном порядке
+        sorted_filters = sorted(filters, key=lambda f: f["filter_name"])
+
+        # перебираем пришедшие фильтры
+        for filter in sorted_filters:
+
+            # создаем ДТО фильтра
+            filter_obj = filter_dto()
+            for key, value in filter.items():
+                if hasattr(filter_obj, key):
+                    setattr(filter_obj, key, str(value))
+
+            # дополняем ключ прототипа согласно полю фильтрации
+            repo_key += f"_{filter["filter_name"]}_{filter["filter_type"]}_{filter["filter_value"]}"  # например range_equal_kg
+
+            # проверяем на наличие уже существующего прототипа
+            if repo_key in self.repo.data:
+                result = self.repo.data[repo_key]
+            else:
+                # сохраняем в репозиторий в случае, если там нету
+                result = result.filter(filter_obj)
+                self.repo.data.setdefault(repo_key, result)
+
+            # если прототип пустой, нет смысла фильтровать дальше
+            if result == []:
+                break
+
+        return result
 
 
